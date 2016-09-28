@@ -1,42 +1,66 @@
 'use strict'
 
+const cluster = require('cluster')
 const fs = require('fs')
+const numCPUs = require('os').cpus().length
 const peerId = require('peer-id')
 const R = require('ramda')
+
 const keyStore = require('./keys')
 
 const NUM_MAX_KEYS = 10000
-const NUM_KEYS_TO_GEN_PER_BATCH = 100
+const NUM_KEYS_TO_GEN_PER_BATCH = 50
 
 const keyCache = keyStore.keys || []
-const startLength = keyCache.length
 
-console.log(`Start length: ${startLength}`)
+const generateKeys = (numKeys) => {
+  console.log(`Generating ${numKeys} additional keys`)
 
-if (startLength >= NUM_MAX_KEYS) {
-  console.log(`${NUM_MAX_KEYS} keys exist`)
-  return
-}
+  try {
+    R.forEach((idx) => {
+      console.log(`Creating key: ${idx+1}`)
+      const id = peerId.create()
+      const json = id.toJSON()
+      keyCache.push(json)
+    }, R.range(0, numKeys))
 
-console.log(`Generating ${NUM_KEYS_TO_GEN_PER_BATCH} additional keys`)
-
-// Generate the keys and cache them in memory
-R.forEach((n) => {
-  console.log(`Now adding key number ${n + 1 + startLength}`)
-  const id = peerId.create()
-  const json = id.toJSON()
-  keyCache.push(json)
-}, R.range(0, NUM_KEYS_TO_GEN_PER_BATCH))
-
-keyStore.keys = keyCache
-const finalLength = keyCache.length
-
-console.log(`Final length: ${finalLength}`)
-console.log(`${finalLength - startLength} keys added`)
-
-fs.writeFile('keys.json', `${JSON.stringify(keyStore)}\r\n`, (err) => {
-  if (err) {
+    keyStore.keys = keyCache
+  } catch (err) {
     throw err
   }
-  console.log('All keys written to keys.json')
-})
+
+  console.log(`${numKeys} keys created`)
+
+  const storeString = JSON.stringify(keyStore)
+
+  fs.writeFile('keys.json', `${storeString}\r\n`, (err) => {
+    if (err) {
+      throw err
+    }
+    console.log('All keys written to keys.json')
+  })
+}
+
+console.log(`Starting with ${keyCache.length} keys`)
+
+generateKeys(NUM_KEYS_TO_GEN_PER_BATCH)
+
+
+// TODO: Parallelize
+// console.log(`Starting with ${keyCache.length} keys`)
+
+// if (keyCache.length >= NUM_MAX_KEYS) {
+//   console.log(`${NUM_MAX_KEYS} keys exist`)
+// } else {
+//   if (cluster.isMaster) {
+//     console.log('Launching workers')
+//     R.forEach((n) => cluster.fork(), R.range(0, numCPUs))
+//   } else {
+//     console.log('Worker launched')
+//     generateKeys(NUM_KEYS_TO_GEN_PER_BATCH)
+//   }
+// }
+
+
+
+
