@@ -6,8 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Gavin McDermott <gavinmcdermott@gmail.com>",
+  "license": "MIT",
   "dependencies": {
     "peer-id": "0.7.0",
     "ramda": "0.22.1",
